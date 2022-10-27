@@ -17,13 +17,13 @@ from train_set_generator import get_tokenized
 
 # Importin data
 
-sdg = pd.read_excel('ssdg.xlsx', sheet_name = 'Sheet1', index_col=0)
+sdg = pd.read_excel('sdg.xlsx', sheet_name = 'Sheet1', index_col=0)
 
 # Selecting text data:
 
-sdg['text'] = sdg['sdg'] + ' ' + sdg['ssdg']
+sdg['text'] = sdg['sdg'] + ' ' + sdg['target']
 sdg = get_tokenized(sdg)
 
 print(sdg.head())
 
-sdg.to_csv('sdg.csv')
+sdg.to_csv('sdg_tokenized.csv')

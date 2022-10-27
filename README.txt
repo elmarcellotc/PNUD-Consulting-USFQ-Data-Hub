@@ -5,4 +5,4 @@ Marcello Coletti; coletti.marcello@gmail.com
 https://www.finanzas.gob.ec/ejecucion-presupuestaria/ in "Plan Anual de Inversiones"
 
 - The sdg.xlsx was made manually from:
-https://www.undp.org/sustainable-development-goals
+https://www.un.org/development/desa/disabilities/envision2030.html

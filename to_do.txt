@@ -1,2 +1,1 @@
-sdg.xlsx must have data from https://www.un.org/development/desa/disabilities/envision2030.html
-and not the current one
+ Generate an excel output with the file sdg_classificator.py

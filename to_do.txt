@@ -1,3 +1,2 @@
-sdg.xlsx must be a csv file in wich each observation is an speciffic sdg, and the dataset
-must have a column with the sdg of from wich the speciffic sdg correspond. And other column
-must be and id to each speciffic sdg.
+sdg.xlsx must have data from https://www.un.org/development/desa/disabilities/envision2030.html
+and not the current one

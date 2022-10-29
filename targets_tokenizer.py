@@ -13,7 +13,7 @@
 import pandas as pd
 pd.options.mode.chained_assignment = None
 
-from train_set_generator import get_tokenized
+from tokenizer import get_tokenized
 
 # Importin data
 
@@ -21,8 +21,9 @@ sdg = pd.read_excel('sdg.xlsx', sheet_name = 'Sheet1', index_col=0)
 
 # Selecting text data:
 
-sdg['text'] = sdg['sdg'] + ' ' + sdg['target']
-sdg = get_tokenized(sdg)
+text_column = 'text'
+sdg[text_column] = sdg['sdg'] + ' ' + sdg['target']
+sdg = get_tokenized(sdg, text_column)
 
 print(sdg.head())
 

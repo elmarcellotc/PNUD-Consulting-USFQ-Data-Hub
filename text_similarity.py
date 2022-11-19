@@ -17,62 +17,75 @@
 # Library importing
 
 import pandas as pd
-
-def jaccard(dfa, dfb, a, b):
+import datetime
     
-    # Jaccard Simmilarity returns the intersection of two sets divided by the union of them.
 
-    for j in dfb.index:
-        bset = set(dfb[b][j])
-        dfa[j] = None
-        
-        for i in dfa.index:
-            aset = set(dfa[a][i])
-            
-            dfa[j][i] = len(aset.intersection(bset)) / len(aset.union(bset))
-            
+def jaccard(a, b):
+    
+    # Jaccard Simmilarity returns the intersection of two sets divided by the union of them.            
 
-    return dfa
+    A = set(a)
+    B = set(b)
+    
+    return len(A.intersection(B)) / len(A.union(B))
 
-
-def simmilarity(dfa, dfb, a, b, model=jaccard):
+def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     
     
     # New columns must be the index of dfb
     
-    # a: Name of the text column in data frame dfa
-    # b: Name of the text column in data frame dfb
+    # a_index: index or simmilarity matirx rows
+    # b_index: Output and simmilarity matirx columns
     
     # This function uses one of the previous simmilarity models to get the simmilarity
     # between two text
     
     # Create a column to contrast Simmilarity
     
-    dfa = model(dfa, dfb, a, b)
+    columns_list = df_columns[column_text].to_list()
+    columns_name = df_columns.index.to_list()
+    index_list = df_rows[column_text].to_list()
     
-    dfa['sdg'] = None
+    sim_dict = {}
     
+    row_time = [None]*(len(columns_list) * len(index_list))
     k = 0
     
-    for j in dfb.index:
+    for i in range(len(columns_list)):
         
-        for i in dfa.index:
+        sim_list = [None] * len(index_list)
+        a = columns_list[i].split(' ')
+        
+        for j in range(len(index_list)):
             
-            if k > dfa[j][i]:
+            t1 = datetime.datetime.now()
             
-                dfa['sdg'][i] = dfb['sdg'][j]
-                k = dfa[j][i]
+            b = index_list[j].split(' ')
+            
+            sim_list[j] = model(a, b)
+            
+            row_time[k] = datetime.datetime.now() - t1
+            k+=1
+            
+        sim_dict[columns_name[i]] = sim_list
     
-    dfc = dfa.groupby(by=['sdg']).sum()
+    return pd.DataFrame(data = sim_dict , index=df_rows.index), row_time
     
-    return dfc
     
 if __name__ == '__main__':
     
-    pai = pd.read_csv('clean_df.csv')
-    sdg = pd.read_csv('targets.csv')
+    clean_df = pd.read_csv('clean_df.csv', index_col=0)
+    targets = pd.read_csv('targets.csv', index_col=1)
     
+    column_text = 'text'    
     
-    investment_flow = simmilarity(dfa=pai, dfb=sdg, a='text', b='text')
-    print(investment_flow.head())
-    investment_flow.to_excel('sdg_investment_flow.xlsx')
+    simmilarity_df, row_time = simmilarity(clean_df, targets, column_text)
+    print(simmilarity_df.head())
+    simmilarity_df.to_csv('simmilarity_df.csv')
+    
+    testing_info = pd.DataFrame()
+    testing_info['duration'] = row_time
+    import os
+    testing_info['programm'] = os.path.basename(__file__)
+    print(testing_info.head())
+    testing_info.to_csv('testing_info.csv')

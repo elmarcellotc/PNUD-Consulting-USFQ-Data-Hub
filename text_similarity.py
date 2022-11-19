@@ -69,10 +69,10 @@ def simmilarity(dfa, dfb, a, b, model=jaccard):
     
 if __name__ == '__main__':
     
-    pai = pd.read_csv('pai_tokenized.csv')
-    sdg = pd.read_csv('sdg_tokenized.csv')
+    pai = pd.read_csv('clean_df.csv')
+    sdg = pd.read_csv('targets.csv')
     
     
-    investment_flow = simmilarity(dfa=pai, dfb=sdg, a='tokenized', b='tokenized')
+    investment_flow = simmilarity(dfa=pai, dfb=sdg, a='text', b='text')
     print(investment_flow.head())
     investment_flow.to_excel('sdg_investment_flow.xlsx')

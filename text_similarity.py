@@ -74,7 +74,7 @@ def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     
 if __name__ == '__main__':
     
-    clean_df = pd.read_csv('clean_df.csv', index_col=0)
+    clean_df = pd.read_csv('clean_df.csv')
     targets = pd.read_csv('targets.csv', index_col=1)
     
     column_text = 'text'    

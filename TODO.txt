@@ -1,0 +1,9 @@
+
+	Consulting to Do List
+
+1 - Add index to cleanning data. (Current)
+2 - Train a simple Jaccard model
+3 - Re-Download and clean PAI from 2017. Do not merge by year. (Contrast if now is comparable with alineacion excel file)
+4 - Classify PAI
+5 - Classify (and download) Elia's data
+6 - Add words classifications by Stanza to Jaccard model.

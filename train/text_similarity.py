@@ -20,14 +20,20 @@ import pandas as pd
 import datetime
     
 
-def jaccard(a, b):
+def jaccard(a, b, χ):
     
     # Jaccard Simmilarity returns the intersection of two sets divided by the union of them.            
 
     A = set(a)
     B = set(b)
     
-    return len(A.intersection(B)) / len(A.union(B))
+    if len(A.intersection(B)) / len(A.union(B)) >= χ:
+    
+        return 1
+    
+    else:
+        
+        return 0
 
 def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     

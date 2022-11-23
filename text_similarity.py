@@ -18,7 +18,7 @@
 
 import pandas as pd
 
-def jaccard(a, b, χ=0.05):
+def jaccard(a, b, χ):
     
     # Jaccard Simmilarity returns the intersection of two sets divided by the union of them.            
 
@@ -35,8 +35,10 @@ def jaccard(a, b, χ=0.05):
     
     return len(A.intersection(B)) / len(A.union(B))
 
-def simmilarity(df_rows, df_columns, column_text, model=jaccard):
+def similarity(df_rows, df_columns, column_text, Χ = None, model=jaccard):
     
+    if Χ == None:
+        Χ = [0.75]*len(df_columns.index)
     
     # New columns must be the index of dfb
     
@@ -48,31 +50,45 @@ def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     
     # Create a column to contrast Simmilarity
     
-    columns_list = df_columns[column_text].to_list()
+    columns_lemma = df_columns[column_text].to_list()
     columns_name = df_columns.index.to_list()
     index_list = df_rows[column_text].to_list()
     
-    sim_dict = {}
+    similarity_df = pd.DataFrame(index=df_rows.index, columns=columns_name)
     
-    
-    for i in range(len(columns_list)):
+    for i in range(len(columns_name)):
         
         sim_list = [None] * len(index_list)
-        a = columns_list[i].split(' ')
+        a = eval(columns_lemma[i])
         
         for j in range(len(index_list)):
             
-            b = index_list[j].split(' ')
+            b = eval(index_list[j])
             
-            sim_list[j] = model(a, b)
+            sim_list[j] = model(a, b, Χ[i])
 
             
-        sim_dict[columns_name[i]] = sim_list
+        similarity_df.iloc[:,i] = sim_list
     
-    return pd.DataFrame(data = sim_dict , index=df_rows.index)
+    non_classified = [0.0]*len(sim_list)
+    
+    for j in range(len(similarity_df.index.to_list())):
+        
+        k = similarity_df.iloc[j].to_list()
+        
+        if k ==0:
+            non_classified[j] = 1
+    
+    similarity_df = similarity_df.assign(target_non_classified=non_classified)
+
+    similarity_df.loc[:, i+1] = non_classified
+    
+    return similarity_df
 
 
-def get_amounts(simmilarity_df, PAI, general_sdg):
+def get_amounts(similarity_df, PAI, general_sdg):
+    
+    # This function is to sum the amount of the flow investment according to the similarity classification
     
     amount_cols = []
     amount_dict = {}
@@ -95,7 +111,7 @@ def get_amounts(simmilarity_df, PAI, general_sdg):
         
         for s in range(len(sdg_list)):
             
-            project_dict = simmilarity_df[sdg_list[s]].to_dict()
+            project_dict = similarity_df[sdg_list[s]].to_dict()
             pai_dict = PAI[val].to_dict()
             
             for p in project_list:
@@ -116,11 +132,12 @@ if __name__ == '__main__':
     PAI = pd.read_csv('clean data/PAI.csv', index_col=0)
     targets = pd.read_csv('clean data/targets.csv', index_col=0)
     
-    column_text = 'text'    
+    column_text = 'lemmas'    
+    treshold = pd.read_csv('clean data/treshold.csv')
+    similarity_df = similarity(PAI, targets, column_text, treshold.iloc[0].to_list())
+    similarity_df.to_csv('clean data/similarity_df.csv')
     
-    simmilarity_df = simmilarity(PAI, targets, column_text)
-    simmilarity_df.to_csv('clean data/simmilarity_df.csv')
     
-    sdg_flows = get_amounts(simmilarity_df, PAI, general_sdg)
+    sdg_flows = get_amounts(similarity_df, PAI, general_sdg)
     sdg_flows.to_excel('output/sdg_public_flow.xlsx')
     print(sdg_flows.head())

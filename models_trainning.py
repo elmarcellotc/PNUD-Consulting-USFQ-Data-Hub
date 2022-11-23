@@ -14,91 +14,142 @@
 import pandas as pd
 import datetime
 
-from text_similarity import jaccard
+from text_similarity import similarity, jaccard
 
+# Minimizer function
 
-def jaccard_minimize(df_rows, df_columns, column_text, χ):
-    
-    columns_list = df_columns[column_text].to_list()
-    columns_name = df_columns.index.to_list()
-    index_list = df_rows[column_text].to_list()
-    
-    sim_dict = {}
-    
-    for i in range(len(columns_list)):
+def get_error(column_vals, real_vals):
         
-        sim_list = [None] * len(index_list)
-        a = columns_list[i].split(' ')
+    ϵ = 0 # error od type classified
         
-        for j in range(len(index_list)):
-            
-            t1 = datetime.datetime.now()
-            
-            b = index_list[j].split(' ')
-            
-            sim_list[j] = jaccard(a, b, χ)
-            
-        sim_dict[columns_name[i]] = sim_list
+    for j in range(len(column_vals)):
         
-    similarity = pd.DataFrame(data = sim_dict , index=df_rows.index, columns=columns_name)
-    
-    # Min error
-    
-    v = 0
-    
-    for i in similarity.index:
-        for j in similarity.columns:                
+        ϵ = real_vals[j] - column_vals[j]
+        ϵ = ϵ * ϵ
             
-            if similarity[j][i] != df_rows[j][i]:
-                
-                v+=1
-                
-    if v < ϵ:
-        ϵ = v
-        best_χ = χ
+    return ϵ
         
-    return best_χ
+    
 
-def general_train(df_columns, df_rows, column_text):
-        
+# Main function is general_train. Will return a df with the best critical value for each model, and the params if required.
+
+def general_train(df_rows, df_columns, column_text):
+
+    # We want to knoe how much observations are good for train and how much for testing
+    
     Α = list(range(40,61))
     
     # Future required lists
     
-    Χ = [None]*len(df_rows)
-    train_obs = [None]*len(Α)
+    Χ = [[None]*len(df_columns)] * len(df_rows) # The best χ value for each class (except non classified) (or best critical value for the model)
+    train_obs = [None]*len(Α) 
     test_obs = [None]*len(Α)
     train_time = [None] * len(Α)
     test_time = [None] * len(Α)
-    Ε = [None] * len(Α)
+    Ε_train = [None] * len(Α) # The minimum square error in the train datframe
+    Ε_test = [None] * len(Α) # The minimum square error in the train df
     
     for α in range(len(Α)):
         
+        # First train the model
+        
         t1 = datetime.datetime.now()
+        
+        # Split train dataset according to α
         
         N = round(len(df_rows) * (1 - (Α[α] / 100) ))
         
-        train = df_rows.iloc[:N]
+        train = df_rows.iloc[:N,:]
         train_obs[α] = len(train)
-        test = df_rows.iloc[N:]
+        test = df_rows.iloc[N:,:]
         test_obs[α] = len(test)
             
         
         # Trainning process. The idea is to find the χ value that minimize the square error
         
-        Χ_row = [i/100 for i in range(40,61)]
-        ϵ = 100000000000000000000000000000000000000
-        best_χ = None
+        columns_names = df_columns.index.to_list()
         
-        for χ in Χ_row:
-            
-
+        Χ_vals = [i/100 for i in range(40,101)]
+        ϵ = [100000000000000000000000000000000000000]*len(columns_names)
+        Χ_row = [None]*len(columns_names)
+        
+        
+        
+        real_values_df = train[columns_names]
+        for χ in range(len(Χ_vals)):
                 
-        Χ[α] = jaccard_minimize(df_rows = train, df_columns=df_columns, column_text=column_text, χ=χ)
+            χ_list = [χ]*len(columns_names)
+            similarity_df = similarity(train, df_columns, column_text, χ_list, jaccard)
+            
+            for i in range(len(columns_names)):
+                
+                column_vals = similarity_df.iloc[:,i].to_list()
+                real_vals = real_values_df.iloc[:,i].to_list()
                     
-                    
+                ϵ_current = get_error(column_vals, real_vals)
+            
+                if ϵ_current < ϵ[i]:
+                    ϵ[i] = ϵ_current
+                    Χ_row[i] = Χ_vals[χ]
+                
+        Χ[α] = Χ_row
+        
+        train_time[α] = datetime.datetime.now()-t1
+        
+        Ε_train[α] = sum(ϵ)
+        
+        # Now, test the model
+        
+        t1 = datetime.datetime.now()
+        
+        real_values_df = test[columns_names]
+        
+        similarity_df = similarity(test, df_columns, column_text, Χ_row, jaccard )
+        
+        ϵ = 0
+        
+        for i in range(len(columns_names)):
+            
+            column_vals = similarity_df.iloc[:,i].to_list()
+            real_vals = real_values_df.iloc[:,i].to_list()
+                
+            ϵ += get_error(column_vals, real_vals)
+        
+        Ε_test[α] = ϵ 
+        test_time[α] = datetime.datetime.now()-t1
 
+        print(train_obs[α], test_obs[α], train_time[α], test_time[α], Ε_train[α], Ε_test[α])
+        print(Χ_row)
+        
+    testing_df = pd.DataFrame({
+        'train observations': train_obs,
+        'test observations': test_obs,
+        'training time': train_time,
+        'testing time': test_time,
+        'Error from training': Ε_train,
+        'Error from testing': Ε_test
+    })
+    
+    treshold_dict = {}
+    
+    for c in range(len(columns_names)):
+        
+        treshold_dict[columns_names[c]] = Χ_row[c]
+    
+    treshold = pd.DataFrame(treshold_dict)
+    
+    return testing_df, treshold
 
 # Importing Trainning set:
 
-main_df = pd.read_csv('train/train.csv', index_col=0)
+
+if __name__ == '__main__':
+    main_df = pd.read_csv('train/train.csv', index_col=0)
+    
+    targets = pd.read_csv('clean data/targets.csv', index_col=0)
+    
+    column_text = 'lemmas'    
+    
+    testing_df, treshold = general_train(df_rows=main_df, df_columns=targets, column_text= column_text)
+    testing_df.to_csv('clean data/testing_jaccard_df.csv')
+    treshold.to_csv('clean data/testing_jaccard_df.csv')

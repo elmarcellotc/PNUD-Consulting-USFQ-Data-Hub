@@ -101,4 +101,4 @@ def general_train(df_columns, df_rows, column_text):
 
 # Importing Trainning set:
 
-main_df = pd.read_csv('train.csv', index_col=0)
+main_df = pd.read_csv('train/train.csv', index_col=0)

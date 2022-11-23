@@ -17,10 +17,8 @@
 # Library importing
 
 import pandas as pd
-import datetime
-    
 
-def jaccard(a, b, χ):
+def jaccard(a, b, χ=0.05):
     
     # Jaccard Simmilarity returns the intersection of two sets divided by the union of them.            
 
@@ -34,6 +32,8 @@ def jaccard(a, b, χ):
     else:
         
         return 0
+    
+    return len(A.intersection(B)) / len(A.union(B))
 
 def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     
@@ -54,8 +54,6 @@ def simmilarity(df_rows, df_columns, column_text, model=jaccard):
     
     sim_dict = {}
     
-    row_time = [None]*(len(columns_list) * len(index_list))
-    k = 0
     
     for i in range(len(columns_list)):
         
@@ -64,34 +62,65 @@ def simmilarity(df_rows, df_columns, column_text, model=jaccard):
         
         for j in range(len(index_list)):
             
-            t1 = datetime.datetime.now()
-            
             b = index_list[j].split(' ')
             
             sim_list[j] = model(a, b)
-            
-            row_time[k] = datetime.datetime.now() - t1
-            k+=1
+
             
         sim_dict[columns_name[i]] = sim_list
     
-    return pd.DataFrame(data = sim_dict , index=df_rows.index), row_time
+    return pd.DataFrame(data = sim_dict , index=df_rows.index)
+
+
+def get_amounts(simmilarity_df, PAI, general_sdg):
+    
+    amount_cols = []
+    amount_dict = {}
+    
+    amount_dict['sdg'] = general_sdg['sdg'].tolist()
+    amount_dict['sdg_information'] = general_sdg['sdg_information'].tolist()
+    amount_dict['target_information'] = general_sdg['target_information'].tolist()
     
     
+    for val in PAI.columns.tolist():
+        if val not in ['proyecto',	'entidad',	'sectorial', 'text']:
+            amount_cols.append(val)
+    
+    sdg_list = general_sdg.index.tolist()
+    project_list = PAI.index.tolist()
+    
+    for val in amount_cols:
+        
+        amount_list = [0.0]*len(sdg_list)
+        
+        for s in range(len(sdg_list)):
+            
+            project_dict = simmilarity_df[sdg_list[s]].to_dict()
+            pai_dict = PAI[val].to_dict()
+            
+            for p in project_list:
+                
+                if project_dict[p] == 1:
+                    
+                    amount_list[s] += pai_dict[p]
+                    
+        amount_dict[val] = amount_list
+        
+                
+    return pd.DataFrame(data=amount_dict, index=sdg_list)
+            
+
 if __name__ == '__main__':
     
-    clean_df = pd.read_csv('clean_df.csv')
-    targets = pd.read_csv('targets.csv', index_col=1)
+    general_sdg = pd.read_csv('raw data/targets.csv', index_col=0)
+    PAI = pd.read_csv('clean data/PAI.csv', index_col=0)
+    targets = pd.read_csv('clean data/targets.csv', index_col=0)
     
     column_text = 'text'    
     
-    simmilarity_df, row_time = simmilarity(clean_df, targets, column_text)
-    print(simmilarity_df.head())
-    simmilarity_df.to_csv('simmilarity_df.csv')
+    simmilarity_df = simmilarity(PAI, targets, column_text)
+    simmilarity_df.to_csv('clean data/simmilarity_df.csv')
     
-    testing_info = pd.DataFrame()
-    testing_info['duration'] = row_time
-    import os
-    testing_info['programm'] = os.path.basename(__file__)
-    print(testing_info.head())
-    testing_info.to_csv('testing_info.csv')
+    sdg_flows = get_amounts(simmilarity_df, PAI, general_sdg)
+    sdg_flows.to_excel('output/sdg_public_flow.xlsx')
+    print(sdg_flows.head())
